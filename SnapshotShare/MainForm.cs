@@ -15,6 +15,9 @@ namespace SnapshotShare
         private PictureBox pictureBox;
         private Button showButton;
         private Button stopButton;
+        private Button refreshButton;
+        private FlowLayoutPanel buttonPanel;
+
         private SecondaryMonitorForm secondaryForm;
         private bool sharing = false;
         private TableLayoutPanel layoutPanel;
@@ -41,10 +44,16 @@ namespace SnapshotShare
             layoutPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));  // Auto-size the row for buttons
             layoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));  // Make the second row (picture) fill the remaining space
 
+            buttonPanel = new FlowLayoutPanel();
+            buttonPanel.Dock = DockStyle.Top;
+            buttonPanel.FlowDirection = FlowDirection.LeftToRight;
+            buttonPanel.AutoSize = true;
+
             // Create "Show to Customer" button
             showButton = new Button();
             showButton.Text = "Show to Customer";
             showButton.Dock = DockStyle.Top;
+            showButton.Width = 150;
             showButton.Click += new EventHandler(ShowToCustomerClicked);
 
             // Create "Stop Sharing" button
@@ -54,6 +63,18 @@ namespace SnapshotShare
             stopButton.Click += new EventHandler(StopSharingClicked);
             stopButton.Visible = false;  // Initially hidden
 
+            // Create "Refresh" button
+            refreshButton = new Button();
+            refreshButton.Text = "Refresh";
+            refreshButton.Dock = DockStyle.Top;
+            refreshButton.Click += new EventHandler(RefreshScreenshotClicked);
+            refreshButton.Visible = false;  // Initially hidden
+
+            // Add buttons to the FlowLayoutPanel
+            buttonPanel.Controls.Add(showButton);
+            buttonPanel.Controls.Add(stopButton);
+            buttonPanel.Controls.Add(refreshButton);
+
             // Create PictureBox for preview
             pictureBox = new PictureBox();
             pictureBox.Dock = DockStyle.Fill;
@@ -61,8 +82,7 @@ namespace SnapshotShare
             pictureBox.Visible = false;
 
             // Add buttons and picture box to the layout panel
-            layoutPanel.Controls.Add(showButton, 0, 0);
-            layoutPanel.Controls.Add(stopButton, 0, 0);
+            layoutPanel.Controls.Add(buttonPanel, 0, 0);
             layoutPanel.Controls.Add(pictureBox, 0, 1);
 
             // Add the layout panel to the form
@@ -70,6 +90,24 @@ namespace SnapshotShare
 
             // Initialize secondary form for the second monitor
             secondaryForm = new SecondaryMonitorForm();
+        }
+
+        private void CaptureAndDisplayScreenshot()
+        {
+            // Capture screenshot of the main monitor (Primary screen)
+            Rectangle screenBounds = Screen.PrimaryScreen.Bounds;
+            Bitmap screenshot = new Bitmap(screenBounds.Width, screenBounds.Height);
+            using (Graphics g = Graphics.FromImage(screenshot))
+            {
+                g.CopyFromScreen(screenBounds.Location, Point.Empty, screenBounds.Size);
+            }
+
+            // Update PictureBox in the control window
+            pictureBox.Image = screenshot;
+            pictureBox.Visible = true;
+
+            // Display the screenshot on the secondary monitor's full-screen form
+            secondaryForm.ShowScreenshot(screenshot);
         }
 
         private void ShowToCustomerClicked(object sender, EventArgs e)
@@ -82,28 +120,33 @@ namespace SnapshotShare
             System.Threading.Thread.Sleep(300);  // Small delay to ensure window is hidden
 
             // Capture screenshot of the main monitor (Primary screen)
-            Rectangle screenBounds = Screen.PrimaryScreen.Bounds;
-            Bitmap screenshot = new Bitmap(screenBounds.Width, screenBounds.Height);
-            using (Graphics g = Graphics.FromImage(screenshot))
-            {
-                g.CopyFromScreen(screenBounds.Location, Point.Empty, screenBounds.Size);
-            }
+            CaptureAndDisplayScreenshot();
 
             // Show the control window again
             this.Show();
 
-            // Set the PictureBox to preview the screenshot in the control window
-            pictureBox.Image = screenshot;
-            pictureBox.Visible = true;
-
-            // Display the screenshot on the secondary monitor's full-screen form
-            secondaryForm.ShowScreenshot(screenshot);
-
             // Toggle visibility of buttons
             showButton.Visible = false;
             stopButton.Visible = true;
+            refreshButton.Visible = true;
 
             sharing = true;
+        }
+
+        private void RefreshScreenshotClicked(object sender, EventArgs e)
+        {
+            if (!sharing)
+                return;
+
+            // Hide the control window before taking the screenshot
+            this.Hide();
+            System.Threading.Thread.Sleep(300);  // Small delay to ensure window is hidden
+
+            // Refresh the screenshot (capture again)
+            CaptureAndDisplayScreenshot();
+
+            // Show the control window again
+            this.Show();
         }
 
         private void StopSharingClicked(object sender, EventArgs e)
@@ -120,6 +163,7 @@ namespace SnapshotShare
 
             showButton.Visible = true;
             stopButton.Visible = false;
+            refreshButton.Visible = false;
 
             sharing = false;
         }

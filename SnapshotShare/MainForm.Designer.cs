@@ -36,7 +36,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
             Name = "MainForm";
-            Text = "MainForm";
+            Text = "Screen Share";
             Load += MainForm_Load;
             ResumeLayout(false);
         }
